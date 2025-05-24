@@ -1,0 +1,41 @@
+{
+  "name": "ai-development-workflow-template",
+  "version": "1.0.0",
+  "description": "GitHub AI Development Workflow Template",
+  "main": "index.js",
+  "scripts": {
+    "setup": "node scripts/setup-project.js",
+    "configure": "node scripts/setup-project.js",
+    "create-sample-issues": "node scripts/create-issues.js",
+    "validate-setup": "node scripts/validate-setup.js"
+  },
+  "keywords": [
+    "github",
+    "ai",
+    "development",
+    "workflow", 
+    "template",
+    "copilot",
+    "automation"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@octokit/rest": "^19.0.0",
+    "inquirer": "^8.2.0",
+    "chalk": "^4.1.2",
+    "fs-extra": "^10.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^2.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/your-username/ai-development-workflow-template.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/ai-development-workflow-template/issues"
+  },
+  "homepage": "https://github.com/your-username/ai-development-workflow-template#readme"
+}
