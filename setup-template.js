@@ -1,21 +1,55 @@
-# 🤖 AI Development Workflow Template
+// setup-template.js - Windows Git Bash対応版
+const fs = require('fs');
+const path = require('path');
+
+console.log('🤖 AI Development Workflow Template Repository Setup');
+console.log('==================================================');
+
+// ディレクトリ構造作成
+const directories = [
+  '.github/ISSUE_TEMPLATE',
+  '.github/workflows', 
+  'docs',
+  'scripts',
+  'templates',
+  'examples/sample-project'
+];
+
+console.log('📁 ディレクトリ構造作成中...');
+directories.forEach(dir => {
+  fs.mkdirSync(dir, { recursive: true });
+  console.log(`✅ ${dir}`);
+});
+
+// ファイル作成関数
+function createFile(filePath, content) {
+  try {
+    fs.writeFileSync(filePath, content, 'utf8');
+    console.log(`✅ ${filePath} 作成完了`);
+  } catch (error) {
+    console.error(`❌ ${filePath} 作成失敗:`, error.message);
+  }
+}
+
+// README.md（テスト用）
+createFile('README.md', `# 🤖 AI Development Workflow Template
 
 GitHub中心の自動運転開発ワークフローを即座にセットアップできるテンプレートです。
 
 ## 🚀 クイックスタート
 
 ### 1. このテンプレートからリポジトリ作成
-```bash
+\`\`\`bash
 gh repo create my-project --template your-username/ai-development-workflow-template
-```
+\`\`\`
 
 ### 2. 自動セットアップ実行
-```bash
+\`\`\`bash
 git clone https://github.com/your-username/my-project.git
 cd my-project
 npm install
 npm run configure
-```
+\`\`\`
 
 ## 📋 前提条件
 
@@ -50,3 +84,9 @@ npm run configure
 ## 📄 License
 
 MIT License
+`);
+
+console.log('\n✅ 基本ファイルが作成されました！');
+console.log('\n📋 次のステップ:');
+console.log('1. ls -la で作成確認');
+console.log('2. より詳細なファイルを作成する場合は追加スクリプト実行');
