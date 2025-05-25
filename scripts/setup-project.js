@@ -16,6 +16,19 @@ async function setupProject() {
       validate: input => input.length > 0 || 'プロジェクト名は必須です'
     },
     {
+      type: 'input',
+      name: 'projectVersion',
+      message: 'プロジェクトバージョン:',
+      default: '0.1.0',
+      validate: input => /^\d+\.\d+\.\d+$/.test(input) || 'バージョンは 0.0.0 の形式で入力してください'
+    },
+    {
+      type: 'input',
+      name: 'author',
+      message: '作成者:',
+      default: ''
+    },
+    {
       type: 'input', 
       name: 'description',
       message: 'プロジェクト説明:',
@@ -78,7 +91,10 @@ async function setupProject() {
   const architecture = generateArchitecture(answers);
   await fs.writeFile('docs/ARCHITECTURE.md', architecture);
 
-  console.log(chalk.green('\n✅ プロジェクトセットアップ完了！'));
+  // package.json の更新
+  await updatePackageJson(answers);
+
+  console.log(chalk.green('\\n✅ プロジェクトセットアップ完了！'));
   console.log(chalk.yellow('\n📖 次のステップ:'));
   console.log('1. GitHub Settings → Actions → General → 権限設定');
   console.log('2. Settings → General → Template repository にチェック（テンプレート化する場合）');
@@ -245,8 +261,13 @@ function generateArchitecture(answers) {
 *PoC完了後に詳細を記載*
 
 ### システム構成図
-\`\`\`
-[アーキテクチャ図をここに記載]
+\`\`\`mermaid
+graph TD
+    A[Client] --> B(API Gateway)
+    B --> C{Service A}
+    B --> D{Service B}
+    C --> E[Database A]
+    D --> F[Database B]
 \`\`\`
 
 ### コンポーネント構成
@@ -267,6 +288,25 @@ function generateArchitecture(answers) {
 ## 📝 更新履歴
 - ${new Date().toISOString().split('T')[0]}: 初期ドキュメント作成
 `;
+}
+
+async function updatePackageJson(answers) {
+  try {
+    const packageJsonPath = path.resolve(process.cwd(), 'package.json');
+    const packageJson = await fs.readJson(packageJsonPath);
+
+    packageJson.name = answers.projectName.toLowerCase().replace(/\s+/g, '-');
+    packageJson.version = answers.projectVersion;
+    packageJson.description = answers.description;
+    if (answers.author) {
+      packageJson.author = answers.author;
+    }
+
+    await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
+    console.log(chalk.cyan('🔧 package.json を更新しました。'));
+  } catch (error) {
+    console.error(chalk.red('❌ package.json の更新に失敗しました:'), error);
+  }
 }
 
 if (require.main === module) {

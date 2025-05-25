@@ -11,8 +11,11 @@ on:
 jobs:
   phase-detection:
     runs-on: ubuntu-latest
+    outputs:
+      phase: ${{ steps.detect_phase.outputs.phase }}
     steps:
       - name: フェーズ自動検出
+        id: detect_phase
         uses: actions/github-script@v7
         with:
           script: |
@@ -29,47 +32,111 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 要件定義フェーズガイダンス
-        run: |
-          echo "要件定義フェーズです。AI議論・参照ドキュメント・人間レビューを進めてください。"
-          echo "推奨プロンプト: 要件を明確にし、AIと議論してください。"
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## 🎯 要件定義フェーズ\n\nAIとの議論、参照ドキュメントの確認、人間によるレビューを進めてください。\n\n**推奨プロンプト例:**\n- 「このプロジェクトの背景と目的を考慮し、主要な機能要件を3つ提案してください。」\n- 「ユーザーストーリーXについて、考えられる技術的課題と解決策を挙げてください。」'
+            });
   poc-phase:
     needs: phase-detection
     if: needs.phase-detection.outputs.phase == 'poc'
     runs-on: ubuntu-latest
     steps:
       - name: PoCフェーズガイダンス
-        run: |
-          echo "PoCフェーズです。Windsurf向けプロンプトを活用し、重要ポイントを意識してください。"
-  pr-automation:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    steps:
-      - name: Copilot Agent自動追加
         uses: actions/github-script@v7
         with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
-            github.rest.pulls.requestReviewers({
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: context.payload.pull_request.number,
-              reviewers: ['github-copilot']
+              body: '## 🧪 PoCフェーズ\n\nWindsurf向けプロンプトを活用し、技術的実現可能性の検証や重要ポイントの洗い出しを行ってください。\n\n**重要ポイント例:**\n- 実装の容易さ\n- パフォーマンス\n- スケーラビリティ'
             });
-      - name: AIレビュー基準説明
-        run: |
-          echo "AIレビュー観点: 標準準拠、セキュリティ、パフォーマンス、カバレッジ"
+  pr-automation:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.event.action == 'opened'
+    steps:
+      - name: Copilot Agent自動追加とレビュー基準通知
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            try {
+              await github.rest.pulls.requestReviewers({
+                owner,
+                repo,
+                pull_number: prNumber,
+                reviewers: ['github-copilot'] // Your Copilot Agent's username if different
+              });
+              console.log('Successfully requested review from github-copilot.');
+            } catch (error) {
+              console.error('Failed to request review from github-copilot:', error);
+              // Add a comment to the PR if reviewer assignment fails, e.g. if github-copilot is not a collaborator
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: prNumber,
+                body: 'Failed to automatically assign @github-copilot as a reviewer. Please assign manually.\nAIレビュー観点: 標準準拠、セキュリティ、パフォーマンス、カバレッジ'
+              });
+              return; // Exit if reviewer assignment failed
+            }
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: '@github-copilot さん、レビューをお願いします。\n\n**AIレビュー観点:**\n- コーディング標準への準拠\n- セキュリティ上の潜在的な脆弱性\n- パフォーマンスに関する懸念事項\n- テストカバレッジの妥当性'
+            });
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Or your preferred LTS version
+          cache: 'npm'
+      - name: Install dependencies
+        run: npm ci
+      - name: Run linters
+        run: npm run lint # Assuming you have an "lint" script in package.json
+      - name: Run tests
+        run: npm run test # Assuming you have a "test" script in package.json
+
   security-scan:
     runs-on: ubuntu-latest
     steps:
-      - name: セキュリティスキャン
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: javascript, python
+          languages: javascript, python # Adjust based on your project's languages
+          # queries: +security-extended, # Optional: to run more queries
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
+
   human-review-reminder:
     runs-on: ubuntu-latest
-    if: contains(github.event.issue.labels.*.name, 'human-review-required')
+    if: github.event_name == 'issues' && github.event.action == 'labeled' && github.event.label.name == 'human-review-required'
     steps:
-      - name: 人間レビューリマインダー
-        run: |
-          echo "human-review-requiredラベルが付与されています。チェックリストを確認してください。"
+      - name: 人間レビューリマインダー通知
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '## ⚠️ 人間によるレビューが必要です\n\nこのIssueには `human-review-required` ラベルが付与されました。\n\n**確認事項:**\n- [ ] ビジネスロジックの妥当性\n- [ ] ユーザーエクスペリエンスの観点\n- [ ] 倫理的配慮事項\n- [ ] (その他プロジェクト固有の確認事項)\n\n担当者は上記を確認し、コメントで結果を報告してください。'
+            });

@@ -7,7 +7,7 @@ labels: implementation, phase-4
 
 ## 🎯 実装対象
 
-- 元Issue:
+- 元Issue: <!-- #要件定義Issue番号 or #PoCIssue番号 -->
 - 担当AI:
 - 期間:
 

@@ -1,0 +1,12 @@
+version: '3.8'
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: sleep infinity
+    environment:
+      - GITHUB_TOKEN=${env:GITHUB_TOKEN}
+    # Add other services like database, redis etc. if needed

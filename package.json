@@ -13,7 +13,7 @@
     "github",
     "ai",
     "development",
-    "workflow", 
+    "workflow",
     "template",
     "copilot",
     "automation"
@@ -21,10 +21,10 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "@octokit/rest": "^19.0.0",
-    "inquirer": "^8.2.0",
+    "@octokit/rest": "^21.1.1",
     "chalk": "^4.1.2",
-    "fs-extra": "^10.0.0"
+    "fs-extra": "^10.0.0",
+    "inquirer": "^8.2.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",
