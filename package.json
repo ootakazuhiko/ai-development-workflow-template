@@ -1,7 +1,7 @@
 {
-  "name": "ai-development-workflow-template",
-  "version": "1.0.0",
-  "description": "GitHub AI Development Workflow Template",
+  "name": "test01",
+  "version": "0.1.0",
+  "description": "新しいAI開発プロジェクト",
   "main": "index.js",
   "scripts": {
     "setup": "node scripts/setup-project.js",
@@ -14,7 +14,15 @@
     "metrics": "node scripts/collect-metrics.js",
     "quality-check": "node scripts/ai-context-quality-evaluator.js",
     "notify-team": "node scripts/team-notifications.js",
-    "progress-update": "node scripts/progress-tracker.js"
+    "progress-update": "node scripts/progress-tracker.js",
+    "migrate": "node scripts/migrate-existing-project.js",
+    "migrate:analyze": "node scripts/migrate-existing-project.js --analyze-only",
+    "migrate:validate": "node scripts/validate-migration.js",
+    "migrate:validate-fix": "node scripts/validate-migration.js --fix-auto",
+    "detect-phase": "node scripts/detect-project-phase.js",
+    "migration-health": "node scripts/migration-health-check.js",
+    "migration-rollback": "node scripts/migration-rollback.js",
+    "staged-migration": "node scripts/staged-migration-manager.js"
   },
   "keywords": [
     "github",
@@ -25,7 +33,7 @@
     "copilot",
     "automation"
   ],
-  "author": "Your Name",
+  "author": "OOTA",
   "license": "MIT",
   "dependencies": {
     "@octokit/rest": "^21.1.1",
