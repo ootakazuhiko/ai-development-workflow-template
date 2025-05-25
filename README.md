@@ -6,7 +6,7 @@ GitHub中心の自動運転開発ワークフローを即座にセットアッ�
 
 ### 1. このテンプレートからリポジトリ作成
 ```bash
-gh repo create my-project --template your-username/ai-development-workflow-template
+gh repo create my-project --private --template ootakazuhiko/ai-development-workflow-template
 ```
 
 ### 2. 自動セットアップ実行
