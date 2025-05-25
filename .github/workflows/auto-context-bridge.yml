@@ -1,0 +1,170 @@
+name: "AI文脈継承自動化"
+
+on:
+  issues:
+    types: [closed, labeled]
+  pull_request:
+    types: [closed]
+
+jobs:
+  auto-context-inheritance:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Extract Phase from Labels
+        id: phase-detection
+        run: |
+          LABELS="${{ github.event.issue.labels || github.event.pull_request.labels }}"
+          echo "Analyzing labels: $LABELS"
+          
+          # フェーズラベルを検出
+          if echo "$LABELS" | grep -q "phase:requirements"; then
+            echo "phase=requirements" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "phase:poc"; then
+            echo "phase=poc" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "phase:implementation"; then
+            echo "phase=implementation" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "phase:review"; then
+            echo "phase=review" >> $GITHUB_OUTPUT
+          elif echo "$LABELS" | grep -q "phase:testing"; then
+            echo "phase=testing" >> $GITHUB_OUTPUT
+          else
+            echo "phase=unknown" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Auto-extract Context Information
+        id: context-extraction
+        if: steps.phase-detection.outputs.phase != 'unknown'
+        run: |
+          node scripts/auto-context-extractor.js \
+            --phase="${{ steps.phase-detection.outputs.phase }}" \
+            --issue-number="${{ github.event.issue.number || github.event.pull_request.number }}" \
+            --issue-title="${{ github.event.issue.title || github.event.pull_request.title }}" \
+            --issue-body="${{ github.event.issue.body || github.event.pull_request.body }}" \
+            --repository="${{ github.repository }}"
+            
+      - name: Generate Next Phase Context
+        if: steps.context-extraction.outputs.success == 'true'
+        run: |
+          node scripts/generate-next-phase-context.js \
+            --current-phase="${{ steps.phase-detection.outputs.phase }}" \
+            --repository="${{ github.repository }}"
+            
+      - name: Create Next Phase Issue
+        if: steps.context-extraction.outputs.next-phase-needed == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const nextPhaseContext = fs.readFileSync('temp/next-phase-context.md', 'utf8');
+            const nextPhase = '${{ steps.context-extraction.outputs.next-phase }}';
+            
+            const issue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔄 ${nextPhase}フェーズ開始 - AI文脈継承`,
+              body: nextPhaseContext,
+              labels: [`phase:${nextPhase}`, 'auto-generated', 'context-inheritance']
+            });
+            
+            console.log(`Created next phase issue: ${issue.data.html_url}`);
+              - name: Evaluate Context Quality
+        if: steps.context-extraction.outputs.success == 'true'
+        id: quality-evaluation
+        run: |
+          node scripts/ai-context-quality-evaluator.js \
+            --phase="${{ steps.phase-detection.outputs.phase }}" \
+            --context-file="docs/ai-context/ai-context-${{ steps.phase-detection.outputs.phase }}.yml"
+            
+      - name: Send Team Notifications
+        if: steps.context-extraction.outputs.success == 'true'
+        run: |
+          # Slack通知（Webhook URLが設定されている場合）
+          if [ ! -z "${{ secrets.SLACK_WEBHOOK_URL }}" ]; then
+            node scripts/team-notifications.js \
+              --webhook-url="${{ secrets.SLACK_WEBHOOK_URL }}" \
+              --phase="${{ steps.phase-detection.outputs.phase }}" \
+              --issue-url="${{ github.event.issue.html_url || github.event.pull_request.html_url }}" \
+              --repository="${{ github.repository }}" \
+              --quality-score="${{ steps.quality-evaluation.outputs.quality-score }}"
+          fi
+          
+          # Teams通知（Webhook URLが設定されている場合）
+          if [ ! -z "${{ secrets.TEAMS_WEBHOOK_URL }}" ]; then
+            node scripts/team-notifications.js \
+              --teams-webhook="${{ secrets.TEAMS_WEBHOOK_URL }}" \
+              --phase="${{ steps.phase-detection.outputs.phase }}" \
+              --issue-url="${{ github.event.issue.html_url || github.event.pull_request.html_url }}" \
+              --repository="${{ github.repository }}" \
+              --quality-score="${{ steps.quality-evaluation.outputs.quality-score }}"
+          fi
+          
+      - name: Add Quality Comment
+        if: steps.context-extraction.outputs.success == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const qualityScore = '${{ steps.quality-evaluation.outputs.quality-score }}';
+            const qualityGrade = '${{ steps.quality-evaluation.outputs.quality-grade }}';
+            const needsImprovement = '${{ steps.quality-evaluation.outputs.needs-improvement }}' === 'true';
+            
+            const qualityEmoji = qualityScore >= 90 ? '🏆' : 
+                                 qualityScore >= 80 ? '⭐' : 
+                                 qualityScore >= 70 ? '✅' : 
+                                 qualityScore >= 60 ? '⚠️' : '🔴';
+            
+            let comment = `## 🤖 AI文脈継承完了
+            
+**フェーズ**: ${{ steps.phase-detection.outputs.phase }}
+**品質スコア**: ${qualityEmoji} ${qualityScore}/100 (グレード: ${qualityGrade})
+**次フェーズ**: ${{ steps.context-extraction.outputs.next-phase }}
+
+### 📊 文脈継承結果
+- ✅ 文脈データ抽出完了
+- ✅ 構造化ファイル生成
+- ✅ 品質評価実行
+${needsImprovement ? '- ⚠️ 品質改善が推奨されます' : '- ✅ 品質基準を満たしています'}
+
+### 📁 生成ファイル
+- \`docs/ai-context/ai-context-${{ steps.phase-detection.outputs.phase }}.yml\`
+- \`docs/ai-context/quality-reports/quality-${{ steps.phase-detection.outputs.phase }}-*.yml\``;
+
+            if ('${{ steps.context-extraction.outputs.next-phase-needed }}' === 'true') {
+              comment += `
+- 🆕 次フェーズIssue自動作成済み`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: comment
+            });
+            
+      - name: Commit Context Files
+        if: steps.context-extraction.outputs.success == 'true'
+        run: |
+          git config --global user.name 'AI Context Bridge Bot'
+          git config --global user.email 'ai-context-bridge@github.com'
+          git add docs/ai-context/
+          git add temp/next-phase-context.md || true
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "🤖 Auto-generated AI context inheritance for ${{ steps.phase-detection.outputs.phase }} phase (Quality: ${{ steps.quality-evaluation.outputs.quality-grade }})"
+            git push
+          fi

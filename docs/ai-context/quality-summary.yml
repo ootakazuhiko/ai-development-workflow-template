@@ -1,0 +1,16 @@
+phases:
+  requirements:
+    latest_score: 0
+    latest_grade: D
+    last_evaluated: '2025-05-25T13:07:53.834Z'
+    needs_improvement: true
+history:
+  - phase: requirements
+    score: 0
+    grade: D
+    evaluated_at: '2025-05-25T13:07:53.834Z'
+overall_stats:
+  average_score: 0
+  phases_completed: 1
+  high_quality_phases: 0
+  needs_improvement_phases: 1

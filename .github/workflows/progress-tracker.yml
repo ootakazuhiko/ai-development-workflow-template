@@ -1,0 +1,142 @@
+name: "プロジェクト進捗追跡"
+
+on:
+  issues:
+    types: [opened, closed, labeled, unlabeled]
+  pull_request:
+    types: [opened, closed, review_requested, reviewed]
+  issue_comment:
+    types: [created]
+
+jobs:
+  update-progress:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Update Progress Dashboard
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { Octokit } = require('@octokit/rest');
+            const yaml = require('js-yaml');
+            const fs = require('fs');
+            
+            // プロジェクト進捗データを収集
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              labels: 'phase:requirements,phase:poc,phase:implementation,phase:review,phase:testing'
+            });
+            
+            const phases = {
+              requirements: { total: 0, completed: 0, in_progress: 0 },
+              poc: { total: 0, completed: 0, in_progress: 0 },
+              implementation: { total: 0, completed: 0, in_progress: 0 },
+              review: { total: 0, completed: 0, in_progress: 0 },
+              testing: { total: 0, completed: 0, in_progress: 0 }
+            };
+            
+            // Issues分析
+            for (const issue of issues.data) {
+              const phaseLabel = issue.labels.find(label => label.name.startsWith('phase:'));
+              if (phaseLabel) {
+                const phase = phaseLabel.name.replace('phase:', '');
+                if (phases[phase]) {
+                  phases[phase].total++;
+                  if (issue.state === 'closed') {
+                    phases[phase].completed++;
+                  } else {
+                    phases[phase].in_progress++;
+                  }
+                }
+              }
+            }
+            
+            // 進捗レポート生成
+            const progressReport = {
+              updated_at: new Date().toISOString(),
+              project_phases: phases,
+              overall_progress: {
+                total_issues: Object.values(phases).reduce((sum, phase) => sum + phase.total, 0),
+                completed_issues: Object.values(phases).reduce((sum, phase) => sum + phase.completed, 0),
+                completion_rate: Math.round(
+                  (Object.values(phases).reduce((sum, phase) => sum + phase.completed, 0) /
+                   Object.values(phases).reduce((sum, phase) => sum + phase.total, 0)) * 100
+                )
+              }
+            };
+            
+            // ファイルに保存
+            fs.writeFileSync('docs/ai-context/progress-dashboard.yml', yaml.dump(progressReport));
+            
+            // READMEに進捗バッジを更新
+            const readmeContent = fs.readFileSync('README.md', 'utf8');
+            const progressBadge = `![Progress](https://img.shields.io/badge/Progress-${progressReport.overall_progress.completion_rate}%25-${progressReport.overall_progress.completion_rate > 80 ? 'green' : progressReport.overall_progress.completion_rate > 50 ? 'yellow' : 'red'})`;
+            
+            const updatedReadme = readmeContent.replace(
+              /!\[Progress\]\([^)]+\)/,
+              progressBadge
+            );
+            
+            if (updatedReadme !== readmeContent) {
+              fs.writeFileSync('README.md', updatedReadme);
+            }
+            
+      - name: Commit Progress Updates
+        run: |
+          git config --global user.name 'Progress Tracker Bot'
+          git config --global user.email 'progress-tracker@github.com'
+          git add docs/ai-context/progress-dashboard.yml
+          git add README.md
+          if git diff --staged --quiet; then
+            echo "No progress changes to commit"
+          else
+            git commit -m "📊 Update project progress dashboard"
+            git push
+          fi
+          
+      - name: Create Progress Summary Comment
+        if: github.event_name == 'issues' && github.event.action == 'closed'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const yaml = require('js-yaml');
+            
+            try {
+              const progressData = yaml.load(fs.readFileSync('docs/ai-context/progress-dashboard.yml', 'utf8'));
+              
+              const progressComment = `## 📊 プロジェクト進捗更新
+              
+**全体進捗**: ${progressData.overall_progress.completion_rate}% (${progressData.overall_progress.completed_issues}/${progressData.overall_progress.total_issues})
+
+### フェーズ別進捗
+${Object.entries(progressData.project_phases).map(([phase, data]) => 
+  `- **${phase}**: ${data.total > 0 ? Math.round((data.completed / data.total) * 100) : 0}% (${data.completed}/${data.total})`
+).join('\n')}
+
+*最終更新: ${new Date(progressData.updated_at).toLocaleString('ja-JP')}*`;
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: progressComment
+              });
+            } catch (error) {
+              console.error('Progress comment creation failed:', error);
+            }

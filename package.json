@@ -7,7 +7,14 @@
     "setup": "node scripts/setup-project.js",
     "configure": "node scripts/setup-project.js",
     "create-sample-issues": "node scripts/create-issues.js",
-    "validate-setup": "node scripts/validate-setup.js"
+    "validate-setup": "node scripts/validate-setup.js",
+    "ai-context": "node scripts/ai-context-bridge.js",
+    "collect-metrics": "node scripts/collect-metrics.js",
+    "context-bridge": "node scripts/ai-context-bridge.js",
+    "metrics": "node scripts/collect-metrics.js",
+    "quality-check": "node scripts/ai-context-quality-evaluator.js",
+    "notify-team": "node scripts/team-notifications.js",
+    "progress-update": "node scripts/progress-tracker.js"
   },
   "keywords": [
     "github",
@@ -23,8 +30,10 @@
   "dependencies": {
     "@octokit/rest": "^21.1.1",
     "chalk": "^4.1.2",
+    "commander": "^9.4.0",
     "fs-extra": "^10.0.0",
-    "inquirer": "^8.2.0"
+    "inquirer": "^8.2.0",
+    "js-yaml": "^4.1.0"
   },
   "devDependencies": {
     "eslint": "^9.0.0",

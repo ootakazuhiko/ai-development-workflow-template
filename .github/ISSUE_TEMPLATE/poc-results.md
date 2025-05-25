@@ -2,7 +2,7 @@
 name: "🧪 PoC結果"
 about: "Windsurfでの開発結果と学習事項"
 title: "[POC] "
-labels: poc, phase-2, human-review-required
+labels: poc, phase:poc, human-review-required
 ---
 
 ## 🧪 検証対象

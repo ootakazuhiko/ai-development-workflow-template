@@ -1,0 +1,19 @@
+file: docs/ai-context/ai-context-requirements.yml
+phase: requirements
+evaluated_at: '2025-05-25T13:07:53.834Z'
+overall_score: 0
+detailed_scores:
+  key_decisions: 0
+  constraints: 0
+  learned_patterns: 0
+  technical_artifacts: 0
+  next_phase_focus: 0
+  total_score: 0
+  max_score: 100
+recommendations:
+  - 重要決定事項に理由と影響範囲を詳しく記述してください
+  - 制約条件をタイプ別に分類し、具体的な説明を追加してください
+  - 学習パターンに根拠・証拠を含めてください
+  - 技術的アーティファクト（コード、設定、図表）を追加してください
+  - 次フェーズの重点項目をより具体的に記述してください
+quality_grade: D

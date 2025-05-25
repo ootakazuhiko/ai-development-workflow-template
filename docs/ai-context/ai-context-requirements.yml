@@ -1,0 +1,23 @@
+# AI文脈継承ファイル - 要件定義フェーズ
+phase: "requirements"
+completion_date: "2025-05-25"
+ai_tools_used:
+  - Claude
+
+key_decisions:
+
+
+critical_constraints:
+  TEST
+
+learned_patterns:
+
+
+next_phase_focus:
+
+
+# 品質メタデータ
+quality_metrics:
+  completeness_score: null  # 人間レビューで設定
+  consistency_score: null   # 自動計算で設定
+  usability_score: null     # 次フェーズでの利用実績で設定
