@@ -1,55 +1,52 @@
 ---
-name: 🎯 要件定義
-about: Claude/Gemini/ChatGPTでの議論結果を構造化
+name: "🎯 要件定義"
+about: "Claude/Gemini/ChatGPTでの議論結果を構造化"
 title: "[REQ] "
 labels: requirements, phase-1, human-review-required
-assignees: ''
 ---
 
 ## 📋 要件概要
-<!-- Claude等での議論結果のサマリー -->
+
+<!-- このIssueで議論・実現したい要件の概要を記載してください -->
 
 ## 🎯 ビジネス目標
-- [ ] 目標1
-- [ ] 目標2
 
-## 👥 ユーザーストーリー
-### ペルソナ1
-- As a [ユーザー種別]
-- I want [機能]
-- So that [価値]
+- [ ] 売上向上
+- [ ] コスト削減
+- [ ] 業務効率化
+- [ ] 顧客満足度向上
+- [ ] その他（具体的に記載）
+
+## 👥 ユーザーストーリー（ペルソナ別）
+
+- ペルソナ1:
+  - ユーザーストーリー:
+- ペルソナ2:
+  - ユーザーストーリー:
 
 ## 🔧 機能要件
-### 主要機能
-1. **機能A**
-   - 詳細仕様：
-   - 制約条件：
-   - 優先度：High/Medium/Low
 
-### 非機能要件
-- **パフォーマンス**: 
-- **セキュリティ**: 
-- **可用性**: 
+- 主要機能:
+- 非機能要件:
 
 ## 💬 AIとの議論ログ
-<details>
-<summary>Claude/ChatGPT/Gemini議論ログ</summary>
 
+```text
+（AIとのやりとりログをここに記載）
 ```
-[AI議論の重要部分をコピペ]
-```
-</details>
 
 ## 🔗 関連情報
-- 参考URL: 
-- 関連Issue: 
-- 設計ドキュメント: 
+
+- 参考資料:
+- 関連Issue:
 
 ## ✅ 承認チェックリスト
+
 - [ ] ステークホルダー確認済み
 - [ ] 技術的実現性確認済み
-- [ ] ROI試算完了
+- [ ] ROI試算済み
 - [ ] 次フェーズ移行承認
 
 ## 🚀 次のアクション
-承認後、[PoC結果テンプレート](https://github.com/your-username/ai-development-workflow-template/issues/new?template=poc-results.md)でPoC開発に移行
+
+PoCフェーズへの移行準備・説明を記載してください。

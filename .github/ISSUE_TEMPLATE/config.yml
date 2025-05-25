@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: 📖 ワークフローガイド
-    url: https://github.com/your-username/ai-development-workflow-template/blob/main/docs/WORKFLOW_GUIDE.md
-    about: ワークフローの詳細な使い方
-  - name: 🤖 AI Tools設定ガイド
-    url: https://github.com/your-username/ai-development-workflow-template/blob/main/docs/AI_TOOLS_CONFIG.md
-    about: AI Toolsの設定方法
+  - name: "📖 ワークフローガイド"
+    url: "../../docs/WORKFLOW_GUIDE.md"
+    about: "AI開発ワークフローの全体像と運用ルールについてはこちらをご参照ください。"
+  - name: "🤖 AI Tools設定ガイド"
+    url: "../../docs/AI_TOOLS_GUIDE.md"
+    about: "AIツールのセットアップ・活用方法はこちらをご参照ください。"

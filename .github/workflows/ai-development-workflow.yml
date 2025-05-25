@@ -1,209 +1,75 @@
-name: AI Development Workflow
-
+name: "AI Development Workflow"
 on:
   issues:
     types: [opened, edited, labeled]
   pull_request:
     types: [opened, synchronize, reopened]
   push:
-    branches: [main, develop]
-
+    branches:
+      - main
+      - develop
 jobs:
   phase-detection:
     runs-on: ubuntu-latest
-    outputs:
-      phase: ${{ steps.detect.outputs.phase }}
     steps:
-    - name: Detect Development Phase
-      id: detect
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const labels = context.payload.issue?.labels?.map(l => l.name) || 
-                        context.payload.pull_request?.labels?.map(l => l.name) || [];
-          
-          if (labels.includes('requirements')) {
-            core.setOutput('phase', 'requirements');
-          } else if (labels.includes('poc')) {
-            core.setOutput('phase', 'poc');
-          } else if (labels.includes('implementation')) {
-            core.setOutput('phase', 'implementation');
-          } else if (context.eventName === 'pull_request') {
-            core.setOutput('phase', 'review');
-          }
-
+      - name: フェーズ自動検出
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.issue ? context.payload.issue.labels.map(l => l.name) : [];
+            let phase = 'other';
+            if (labels.includes('requirements')) phase = 'requirements';
+            else if (labels.includes('poc')) phase = 'poc';
+            else if (labels.includes('implementation')) phase = 'implementation';
+            else if (labels.includes('review')) phase = 'review';
+            core.setOutput('phase', phase);
   requirements-phase:
     needs: phase-detection
     if: needs.phase-detection.outputs.phase == 'requirements'
     runs-on: ubuntu-latest
     steps:
-    - name: Requirements Phase Notification
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const comment = `## 🎯 要件定義フェーズが開始されました
-          
-          ### 📋 次のステップ
-          1. **AI議論**: Claude/Gemini/ChatGPTで要件を詳細化
-          2. **参照ドキュメント**: [PROJECT_CONTEXT.md](./docs/PROJECT_CONTEXT.md)
-          3. **議論ログ**: AI議論の重要部分をこのIssueに記録
-          4. **人間レビュー**: 議論完了後、承認チェックリストを確認
-          
-          ### 🤖 推奨プロンプト
-          \`\`\`
-          以下のプロジェクト情報を参考に、要件定義を行ってください：
-          [PROJECT_CONTEXT.mdの内容を参照]
-          
-          検討したい機能: [具体的な機能要求]
-          制約条件: [技術的・ビジネス的制約]
-          \`\`\`
-          
-          ### ⚠️ 重要
-          - セキュリティ要件を必ず検討してください
-          - パフォーマンス要件を明確化してください
-          - 承認チェックリスト完了後、次フェーズに移行してください`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
-
+      - name: 要件定義フェーズガイダンス
+        run: |
+          echo "要件定義フェーズです。AI議論・参照ドキュメント・人間レビューを進めてください。"
+          echo "推奨プロンプト: 要件を明確にし、AIと議論してください。"
   poc-phase:
     needs: phase-detection
     if: needs.phase-detection.outputs.phase == 'poc'
     runs-on: ubuntu-latest
     steps:
-    - name: PoC Phase Notification
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const comment = `## 🧪 PoCフェーズが開始されました
-          
-          ### 📋 次のステップ
-          1. **Windsurf開発**: 自動運転モードで迅速にプロトタイプ作成
-          2. **参照情報**: [AI_INTERACTION_LOG.md](./docs/AI_INTERACTION_LOG.md)から前フェーズの文脈を確認
-          3. **検証実行**: 基本機能・パフォーマンス・統合可能性を確認
-          4. **結果記録**: 発見事項と推奨アプローチをIssueに記録
-          
-          ### 🤖 Windsurf向けプロンプト
-          \`\`\`
-          要件定義結果に基づいてPoCを開発してください：
-          - 実装場所: /poc/ ディレクトリ
-          - 参照基準: docs/CODING_STANDARDS.md
-          - 優先度: セキュリティ > 機能 > パフォーマンス
-          \`\`\`
-          
-          ### ⚠️ 重要
-          - 動作するプロトタイプレベルで十分です
-          - パフォーマンス測定も実施してください  
-          - 本実装での課題・推奨事項を必ず記録してください`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
-
+      - name: PoCフェーズガイダンス
+        run: |
+          echo "PoCフェーズです。Windsurf向けプロンプトを活用し、重要ポイントを意識してください。"
   pr-automation:
-    needs: phase-detection
-    if: needs.phase-detection.outputs.phase == 'review'
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Add Copilot as Reviewer
-      uses: actions/github-script@v6
-      with:
-        script: |
-          // GitHub Copilot Agentをレビュアーに追加
-          try {
-            await github.rest.pulls.requestReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: context.issue.number,
-              team_reviewers: ['copilot']
-            });
-          } catch (error) {
-            console.log('Copilot reviewer addition failed:', error.message);
-          }
-          
-    - name: AI Review Context
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const comment = `## 🤖 AI Code Review Context
-          
-          ### 📋 レビュー基準
-          - **コーディング標準**: [CODING_STANDARDS.md](./docs/CODING_STANDARDS.md)
-          - **アーキテクチャ**: [ARCHITECTURE.md](./docs/ARCHITECTURE.md) 
-          - **セキュリティ要件**: 入力値検証、認証・認可、ログ出力基準
-          
-          ### 🔍 重点確認項目
-          - [ ] セキュリティ要件の実装
-          - [ ] パフォーマンスの考慮
-          - [ ] エラーハンドリングの適切性
-          - [ ] テストカバレッジの妥当性
-          - [ ] コーディング標準準拠
-          
-          @github-copilot 上記基準に従ってレビューをお願いします。`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
-
-  security-scan:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: javascript, python
-        
-    - name: Autobuild
-      uses: github/codeql-action/autobuild@v2
-      
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-
+      - name: Copilot Agent自動追加
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              reviewers: ['github-copilot']
+            });
+      - name: AIレビュー基準説明
+        run: |
+          echo "AIレビュー観点: 標準準拠、セキュリティ、パフォーマンス、カバレッジ"
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: セキュリティスキャン
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript, python
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
   human-review-reminder:
     runs-on: ubuntu-latest
     if: contains(github.event.issue.labels.*.name, 'human-review-required')
     steps:
-    - name: Human Review Reminder
-      uses: actions/github-script@v6
-      with:
-        script: |
-          const comment = `## 🚨 人間レビューが必要です
-          
-          このIssueは人間による重要な判断が必要です：
-          
-          ### ✅ レビューチェックリスト
-          - [ ] **ビジネス価値確認**: ROIと優先度は適切か
-          - [ ] **技術的妥当性**: 提案アプローチは実現可能か
-          - [ ] **リスク評価**: 特定されたリスクは許容範囲か
-          - [ ] **リソース計画**: スケジュール・人員は現実的か
-          - [ ] **次フェーズ移行承認**: 次段階への進行を承認するか
-          
-          ### ⏰ アクション
-          レビュー完了後、適切なラベルを追加してください：
-          - \`approved\`: 承認・次フェーズ移行OK
-          - \`needs-revision\`: 修正が必要
-          - \`rejected\`: 却下・代替案検討`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: comment
-          });
+      - name: 人間レビューリマインダー
+        run: |
+          echo "human-review-requiredラベルが付与されています。チェックリストを確認してください。"
