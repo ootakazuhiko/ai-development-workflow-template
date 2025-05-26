@@ -25,6 +25,7 @@ jobs:
             else if (labels.includes('poc')) phase = 'poc';
             else if (labels.includes('implementation')) phase = 'implementation';
             else if (labels.includes('review')) phase = 'review';
+            else if (labels.includes('testing')) phase = 'testing'; // testing ラベルを追加
             core.setOutput('phase', phase);
   requirements-phase:
     needs: phase-detection
@@ -40,7 +41,20 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '## 🎯 要件定義フェーズ\n\nAIとの議論、参照ドキュメントの確認、人間によるレビューを進めてください。\n\n**推奨プロンプト例:**\n- 「このプロジェクトの背景と目的を考慮し、主要な機能要件を3つ提案してください。」\n- 「ユーザーストーリーXについて、考えられる技術的課題と解決策を挙げてください。」'
+              body: `## 🎯 要件定義フェーズ
+
+AIとの議論、参照ドキュメントの確認、人間によるレビューを進めてください。
+
+**詳細ガイド:**
+- [要件定義フェーズの進め方](../../docs/WORKFLOW_GUIDE.md#phase-1-要件定義)
+
+**関連スクリプト例:**
+- プロジェクト初期設定 (未実施の場合): \`npm run setup\`
+- フェーズ完了時の文脈記録: \`npm run ai-context -- complete --phase=requirements\`
+
+**推奨プロンプト例:**
+- 「このプロジェクトの背景と目的を考慮し、主要な機能要件を3つ提案してください。」
+- 「ユーザーストーリーXについて、考えられる技術的課題と解決策を挙げてください。」`
             });
   poc-phase:
     needs: phase-detection
@@ -56,7 +70,109 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: '## 🧪 PoCフェーズ\n\nWindsurf向けプロンプトを活用し、技術的実現可能性の検証や重要ポイントの洗い出しを行ってください。\n\n**重要ポイント例:**\n- 実装の容易さ\n- パフォーマンス\n- スケーラビリティ'
+              body: `## 🧪 PoCフェーズ
+
+Windsurf向けプロンプトなどを活用し、技術的実現可能性の検証や重要ポイントの洗い出しを行ってください。
+
+**詳細ガイド:**
+- [PoCフェーズの進め方](../../docs/WORKFLOW_GUIDE.md#phase-2-poc開発)
+
+**関連スクリプト例:**
+- PoCフェーズ開始時の文脈継承プロンプト生成: \`npm run ai-context -- start --phase=poc\`
+- フェーズ完了時の文脈記録: \`npm run ai-context -- complete --phase=poc\`
+
+**重要ポイント例:**
+- 実装の容易さ
+- パフォーマンス
+- スケーラビリティ`
+            });
+  implementation-phase:
+    needs: phase-detection
+    if: needs.phase-detection.outputs.phase == 'implementation'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 実装フェーズガイダンス
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ⚙️ 実装フェーズ
+
+PoCの結果と設計に基づき、本番品質のコードを開発します。GitHub CopilotやCursorなどを活用しましょう。
+
+**詳細ガイド:**
+- [実装フェーズの進め方](../../docs/WORKFLOW_GUIDE.md#phase-3-実装)
+
+**関連スクリプト例:**
+- 実装フェーズ開始時の文脈継承プロンプト生成: \`npm run ai-context -- start --phase=implementation\`
+- フェーズ完了時の文脈記録: \`npm run ai-context -- complete --phase=implementation\`
+
+**主な作業:**
+- コーディング標準、セキュリティ要件の遵守
+- 単体テスト、統合テストの実装とカバレッジ確保`
+            });
+  review-phase:
+    needs: phase-detection
+    if: needs.phase-detection.outputs.phase == 'review' # 通常レビューはPRに対して行われるが、Issueにラベルが付くケースも考慮
+    runs-on: ubuntu-latest
+    steps:
+      - name: レビューフェーズガイダンス
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🔍 レビューフェーズ
+
+実装されたコードの品質、設計の妥当性、要件充足度を確認します。GitHub Copilot Agentも活用しましょう。
+
+**詳細ガイド:**
+- [レビューフェーズの進め方](../../docs/WORKFLOW_GUIDE.md#phase-4-レビュー)
+
+**関連スクリプト例:**
+- レビューフェーズ開始時の文脈継承プロンプト生成: \`npm run ai-context -- start --phase=review\`
+- フェーズ完了時の文脈記録: \`npm run ai-context -- complete --phase=review\`
+
+**主な作業:**
+- Pull Request作成とレビュー依頼
+- AIレビュー観点と人間によるレビューの実施`
+            });
+  testing-phase:
+    needs: phase-detection
+    if: needs.phase-detection.outputs.phase == 'testing'
+    runs-on: ubuntu-latest
+    steps:
+      - name: テストフェーズガイダンス
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## 🧪 テストとデプロイフェーズ
+
+システム全体の動作を検証し、本番環境へリリースします。AIを活用したテストも検討しましょう。
+
+**詳細ガイド:**
+- [テストとデプロイフェーズの進め方](../../docs/WORKFLOW_GUIDE.md#phase-5-テストとデプロイ)
+
+**関連スクリプト例:**
+- テストフェーズ開始時の文脈継承プロンプト生成: \`npm run ai-context -- start --phase=testing\`
+- フェーズ完了時の文脈記録: \`npm run ai-context -- complete --phase=testing\`
+- 文脈品質チェック: \`npm run quality-check -- --phase=testing\`
+
+**主な作業:**
+- E2Eテスト、パフォーマンステスト、受け入れテストの実施
+- デプロイ手順に従ったリリース作業`
             });
   pr-automation:
     runs-on: ubuntu-latest
